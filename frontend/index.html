@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Auction Manager</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <h1>WhatsApp Auction Manager</h1>
+        </div>
+
+        <nav>
+            <button class="nav-btn active" data-page="dashboard">
+                Dashboard
+            </button>
+
+            <button class="nav-btn" data-page="new-auction">
+                New Auction
+            </button>
+
+            <button class="nav-btn" data-page="auctions">
+                Active Auctions
+            </button>
+
+            <button class="nav-btn" data-page="winners">
+                Winners
+            </button>
+        </nav>
+    </header>
+
+    <main>
+
+        <!-- ================= Dashboard ================= -->
+
+        <section id="dashboard" class="page active-page">
+
+            <h2>Dashboard</h2>
+
+            <div class="stats">
+
+                <div class="card">
+                    <h3>Active Auctions</h3>
+                    <p id="activeCount">0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Ending Soon</h3>
+                    <p id="endingSoon">0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Completed</h3>
+                    <p id="completedCount">0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Total Revenue</h3>
+                    <p id="revenue">$ 0</p>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- ================= Create Auction ================= -->
+
+        <section id="new-auction" class="page">
+
+            <h2>Create Auction</h2>
+
+            <form id="auctionForm">
+
+                <label>Reference</label>
+                <input
+                    type="text"
+                    id="reference"
+                    placeholder="REF001"
+                    required
+                >
+
+                <label>Title</label>
+                <input
+                    type="text"
+                    id="title"
+                    placeholder="Dell Latitude 7420"
+                    required
+                >
+
+                <label>Description</label>
+                <textarea
+                    id="description"
+                    rows="4"
+                ></textarea>
+
+                <label>Starting Price ($)</label>
+                <input
+                    type="number"
+                    id="startAmount"
+                    required
+                >
+
+                <label>End Time</label>
+                <input
+                    type="datetime-local"
+                    id="endTime"
+                    required
+                >
+
+                <label>WhatsApp Group ID</label>
+                <input
+                    type="text"
+                    id="groupId"
+                    required
+                    
+                >
+
+                <button type="submit">
+                    Create Auction
+                </button>
+
+            </form>
+
+        </section>
+
+        <!-- ================= Active Auctions ================= -->
+
+        <section id="auctions" class="page">
+
+            <div class="section-header">
+                <h2>Active Auctions</h2>
+
+                <button id="refreshBtn">
+                    Refresh
+                </button>
+            </div>
+
+            <div id="auctionList">
+
+                <!-- JavaScript inserts auction cards here -->
+
+            </div>
+
+        </section>
+
+        <!-- ================= Winners ================= -->
+
+        <section id="winners" class="page">
+
+            <h2>Completed Auctions</h2>
+
+            <div id="winnerList">
+
+                <!-- JavaScript inserts winner cards here -->
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ================= Templates ================= -->
+
+    <template id="auctionTemplate">
+
+        <div class="auction-card">
+
+            <h3 class="auction-title"></h3>
+
+            <p>
+                <strong>Reference:</strong>
+                <span class="auction-reference"></span>
+            </p>
+
+            <p>
+                <strong>Highest Bid:</strong>
+                $ <span class="auction-bid"></span>
+            </p>
+
+            <p>
+                <strong>Highest Bidder:</strong>
+                <span class="auction-bidder"></span>
+            </p>
+
+            <p>
+                <strong>Time Left:</strong>
+                <span class="auction-time"></span>
+            </p>
+
+            <div class="actions">
+
+                <button class="extend-btn">
+                    Extend
+                </button>
+
+                <button class="close-btn">
+                    Close
+                </button>
+
+            </div>
+
+        </div>
+
+    </template>
+
+    <template id="winnerTemplate">
+
+        <div class="winner-card">
+
+            <h3 class="winner-title"></h3>
+
+            <p>
+                Winner:
+                <span class="winner-name"></span>
+            </p>
+
+            <p>
+                Winning Bid:
+                $ <span class="winner-bid"></span>
+            </p>
+
+        </div>
+
+    </template>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="script.js"></script>
+
+</body>
+</html>

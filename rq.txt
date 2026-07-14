@@ -1,0 +1,14 @@
+I run an active auction group on WhatsApp (members connect through Android devices) and now need a purpose-built backend that plugs into the WhatsApp Business API to keep each sale organised and transparent.
+
+Core flow
+• Capture every bid that comes into the group, store it with timestamp, bidder ID, and item reference.
+• Push instant “you’re now the highest bidder” or “you’ve been out-bid” alerts back to the bidder.
+With each bid the time to bid on that specific item gets extended with 10 seconds and auctions is done lot by lot.
+• Automatically close the lot at the preset end time and post a winner announcement to the group, while privately DM’ing payment instructions.
+
+Because I don’t yet have any server-side infrastructure, the project includes designing and deploying a fresh, scalable backend (language and stack are flexible; Node.js or Python with a realtime database such as Firebase/Firestore, MongoDB, or PostgreSQL are all fine as long as they meet WhatsApp Business API requirements).
+
+What I’d like handed over
+1. Source code in a Git repo with clear setup instructions.
+2. Deployed instance (cloud preference: AWS, GCP, or DigitalOcean) with HTTPS endpoint and webhook integration to WhatsApp.
+3. README covering environment variables, how to add new auction items, and how to trigger manual overrides if needed.
