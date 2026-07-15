@@ -2,7 +2,7 @@
 // Configuration
 // ===============================
 
-const API = "http://localhost:3000";
+const API = window.location.origin;
 const ADMIN_SECRET = "my_admin_secret"; // Change this in production
 
 const headers = {
@@ -20,7 +20,7 @@ const navButtons = document.querySelectorAll(".nav-btn");
 // ===============================
 // Helpers & Sockets
 // ===============================
-const socket = io(API);
+const socket = io();
 
 socket.on("dashboard:update", (data) => {
   document.getElementById("activeCount").textContent = data.active;
