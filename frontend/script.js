@@ -94,7 +94,7 @@ function renderWinners(winners) {
 socket.on("auctions:update", renderAuctions);
 socket.on("winners:update", renderWinners);
 
-socket.on("auction:newBid", (bid) => {
+socket.on("bid:placed", (bid) => {
   console.log("New Bid", bid);
 });
 

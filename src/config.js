@@ -11,6 +11,11 @@ module.exports = {
   whatsappApiUrl: process.env.WHATSAPP_API_URL,
   whatsappToken: process.env.WHATSAPP_ACCESS_TOKEN,
   whatsappGroupId: process.env.WHATSAPP_GROUP_ID,
+  whatsappProvider:
+    process.env.WHATSAPP_PROVIDER ||
+    (/graph\.facebook\.com/i.test(process.env.WHATSAPP_API_URL || '')
+      ? 'meta'
+      : 'whapi'),
   adminNumber: process.env.ADMIN_PHONE_NUMBER,
   adminSecret: process.env.ADMIN_SECRET,
   checkIntervalSeconds: Number(process.env.CHECK_INTERVAL_SECONDS || 5),

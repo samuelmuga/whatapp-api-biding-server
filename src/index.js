@@ -12,6 +12,7 @@ const auctionManager = require("./services/auctionManager");
 const whatsapp = require("./services/whatsapp");
 
 const AuctionItem = require("./models/auctionItem");
+const Bid = require("./models/bid");
 
 // =====================================================
 // EXPRESS
@@ -35,7 +36,7 @@ const io = new Server(server, {
 
 app.set("io", io);
 
-io.on("connection", socket => {
+io.on("connection", (socket) => {
     console.log(`Socket Connected: ${socket.id}`);
 
     socket.on("disconnect", () => {
@@ -174,6 +175,24 @@ const dashboardStats = async () => {
 // SOCKET.IO NOTIFIERS
 // =====================================================
 
+const broadcastState = async () => {
+  try {
+    const stats = await dashboardStats();
+    const open = await AuctionItem
+      .find({ status: "open" })
+      .sort({ endTime: 1 });
+    const closed = await AuctionItem
+      .find({ status: "closed" })
+      .sort({ endTime: -1 });
+
+    io.emit("dashboard:update", stats);
+    io.emit("auctions:update", open);
+    io.emit("winners:update", closed);
+  } catch (err) {
+    console.error("broadcastState error:", err);
+  }
+};
+
 const notifyNewBid = (item, bidderName, amount) => {
   io.emit("bid:placed", {
     reference: item.reference,
@@ -208,22 +227,49 @@ const notifyAuctionDeleted = (reference) => {
 };
 
 // =====================================================
+// WEBHOOK HELPERS
+// =====================================================
+
+// Supports both the Whapi flat payload and the Meta Cloud API nested payload.
+const extractInboundMessage = (event) => {
+    if (Array.isArray(event?.messages) && event.messages[0]) {
+        const message = event.messages[0];
+        return {
+            message,
+            bidderName: message.profile?.name || event.contacts?.[0]?.profile?.name,
+        };
+    }
+
+    const value = event?.entry?.[0]?.changes?.[0]?.value;
+    const message = value?.messages?.[0];
+    if (message) {
+        const contact = Array.isArray(value.contacts)
+            ? value.contacts.find((c) => c.wa_id === message.from)
+            : null;
+        return {
+            message,
+            bidderName: contact?.profile?.name,
+        };
+    }
+
+    return null;
+};
+
+// =====================================================
 // WEBHOOK
 // =====================================================
 
 app.post("/webhook", asyncHandler(async (req, res) => {
     const event = req.body;
-    const message = event?.messages?.[0];
+    const inbound = extractInboundMessage(event);
+    const message = inbound?.message;
 
     if (!message || message.type !== "text") {
         return res.sendStatus(200);
     }
 
     const bidderId = message.from;
-    const bidderName =
-        message.profile?.name ||
-        message.contacts?.[0]?.profile?.name ||
-        bidderId;
+    const bidderName = inbound?.bidderName || bidderId;
 
     const text = message.text?.body?.trim();
 
@@ -297,6 +343,8 @@ app.post("/webhook", asyncHandler(async (req, res) => {
             parsed.amount
         );
     }
+
+    await broadcastState();
 
     res.json({
         success: true
@@ -402,6 +450,8 @@ app.post(
             item
         );
 
+        await broadcastState();
+
         res.status(201).json({
             success: true,
             item
@@ -489,6 +539,8 @@ app.post(
                 break;
         }
 
+        await broadcastState();
+
         res.json({
             success: true,
             item,
@@ -531,6 +583,8 @@ app.post(
             item.groupId,
             item
         );
+
+        await broadcastState();
 
         res.json({
             success: true,
@@ -613,9 +667,13 @@ app.get(
             });
         }
 
+        const bids = await Bid
+            .find({ itemReference: req.params.reference })
+            .sort({ timestamp: -1 });
+
         res.json({
             auction: item.title,
-            bids: item.bidHistory || [],
+            bids,
         });
     })
 );
@@ -640,6 +698,8 @@ app.delete(
 
         await item.deleteOne();
         notifyAuctionDeleted(item.reference);
+
+        await broadcastState();
 
         res.json({
             success: true,

@@ -36,13 +36,9 @@ const placeBid = async ({ item, bidderId, bidderName, amount, rawMessage }) => {
     return { success: false, reason: `Bid must be at least ${minimum}` };
   }
 
-  const previousBidder = item.currentBidderId;
-  const previousBidderName = item.currentBidderName;
-  const previousAmount = item.currentAmount;
-
   item.currentAmount = amount;
-  item.currentBidderId = bidderId;
-  item.currentBidderName = bidderName;
+  item.highestBidderId = bidderId;
+  item.highestBidder = bidderName;
   item.endTime = new Date(Math.max(item.endTime.getTime(), Date.now() + BID_EXTENSION_SECONDS * 1000));
   item.extendedAt = new Date();
   await item.save();
@@ -55,13 +51,15 @@ const placeBid = async ({ item, bidderId, bidderName, amount, rawMessage }) => {
     rawMessage,
   });
 
-  await whatsapp.sendPrivateMessage(bidderId, `Congrats ${bidderName}, you are now the highest bidder for ${item.title} at ${amount}.`);
+  return { success: true, item, currentAmount: amount };
+};
 
-  if (previousBidder && previousBidder !== bidderId) {
-    await whatsapp.sendPrivateMessage(previousBidder, `You have been outbid on ${item.title}. Current highest bid is ${amount}.`);
-  }
-
-  return { success: true, item, previousAmount, previousBidder, currentAmount: amount };
+const closeItem = async (item) => {
+  item.status = 'closed';
+  item.winner = item.highestBidderId;
+  item.winnerName = item.highestBidder;
+  await item.save();
+  return item;
 };
 
 const checkAuctions = async () => {
@@ -69,20 +67,17 @@ const checkAuctions = async () => {
   const items = await AuctionItem.find({ status: 'open', endTime: { $lte: now } });
 
   for (const item of items) {
-    item.status = 'closed';
-    item.winner = item.currentBidderId;
-    item.winnerName = item.currentBidderName;
-    await item.save();
+    await closeItem(item);
 
-    const announcement = item.currentBidderId
+    const announcement = item.winner
       ? `🏁 Auction closed for ${item.title} (${item.reference}). Winner: ${item.winnerName} with ${item.currentAmount}. Payment instructions have been sent privately.`
       : `🏁 Auction closed for ${item.title} (${item.reference}) with no bids.`;
 
     await whatsapp.sendGroupAnnouncement(announcement);
 
-    if (item.currentBidderId) {
+    if (item.winner) {
       await whatsapp.sendPrivateMessage(
-        item.currentBidderId,
+        item.winner,
         `Congratulations ${item.winnerName}! You won ${item.title} (${item.reference}) for ${item.currentAmount}. ${item.paymentInstructions}`
       );
     }
@@ -94,12 +89,17 @@ const manualOverride = async ({ reference, action, seconds }) => {
   if (!item) return { success: false, reason: 'Item not found' };
 
   if (action === 'close') {
-    item.endTime = new Date();
-    await item.save();
+    if (item.status === 'closed') {
+      return { success: false, reason: 'Auction is already closed.' };
+    }
+    await closeItem(item);
     return { success: true, item };
   }
 
   if (action === 'extend') {
+    if (item.status !== 'open') {
+      return { success: false, reason: 'Only open auctions can be extended.' };
+    }
     const extensionMs = Number(seconds || BID_EXTENSION_SECONDS) * 1000;
     item.endTime = new Date(item.endTime.getTime() + extensionMs);
     await item.save();
